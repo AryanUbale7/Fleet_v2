@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarajya Gurukul | AI Driver Command</title>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --card-glass: rgba(30, 41, 59, 0.5);
+            --primary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* SIDEBAR */
+        .sidebar { 
+            width: 280px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); 
+            padding: 40px 24px; border-right: 1px solid var(--border); position: fixed; height: 100vh;
+        }
+        .school-logo { width: 100px; filter: drop-shadow(0 0 15px var(--primary)); margin-bottom: 10px; }
+        .logo-text { font-weight: 800; color: #fbbf24; letter-spacing: 1px; margin-bottom: 40px; text-align: center; display: block; }
+
+        .nav-item { padding: 14px 18px; border-radius: 14px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: 0.3s; color: var(--muted); text-decoration: none; }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+
+        /* MAIN CONTENT */
+        .main { margin-left: 280px; flex: 1; padding: 40px 50px; }
+        .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
+        
+        .card { background: var(--card-glass); backdrop-filter: blur(10px); padding: 25px; border-radius: 28px; border: 1px solid var(--border); margin-bottom: 25px; }
+
+        /* STATUS UI */
+        .status-container { text-align: center; padding: 30px; border-radius: 24px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); }
+        .bus-id-display { font-size: 48px; font-weight: 900; margin: 10px 0; color: var(--primary); text-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+        
+        .timer-glow { animation: pulse 1.5s infinite; color: var(--warning) !important; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* ATTENDANCE BUTTONS */
+        .btn-group { display: flex; gap: 15px; margin-top: 20px; }
+        .btn { flex: 1; padding: 15px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .btn-p { background: var(--primary); color: white; }
+        .btn-a { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
+        .day { aspect-ratio: 1; display: grid; place-items: center; border-radius: 8px; background: rgba(255,255,255,0.03); cursor: pointer; font-size: 12px; }
+        .day.present { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .day.active { border: 2px solid var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div style="text-align: center;">
+        <img src="school-logo.png" alt="Logo" class="school-logo">
+        <span class="logo-text">SWARAJYA GURUKUL</span>
+    </div>
+    <nav>
+        <a href="#" class="nav-item active"><i data-lucide="layout-dashboard"></i> My Dashboard</a>
+        <a href="#" class="nav-item"><i data-lucide="map-pin"></i> Trip History</a>
+    </nav>
+</div>
+
+<div class="main">
+    <header style="margin-bottom: 30px;">
+        <h1 id="welcomeTxt">Welcome, Driver!</h1>
+        <p style="color: var(--muted);">AI Fleet Startup System Enabled</p>
+    </header>
+
+    <div class="grid">
+        <div class="left-col">
+            <div class="card">
+                <h3>Attendance Portal</h3>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <div id="actionBox" style="margin-top: 20px;">
+                    <p id="selDateTxt" style="font-weight: 600; color: var(--muted);">Select a date to mark duty</p>
+                    <div class="btn-group">
+                        <button class="btn btn-p" onclick="saveDuty('Present')">Mark Present</button>
+                        <button class="btn btn-a" onclick="saveDuty('Absent')">Mark Absent</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="card">
+                <div class="status-container">
+                    <span style="font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 2px;">LIVE UNIT STATUS</span>
+                    <div id="busID" class="bus-id-display">--</div>
+                    <div id="liveStatusBadge">
+                        <span style="color: var(--muted);">Checking system...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    const STARTUP_TIME = 30; // 30 Seconds
+    const driver = JSON.parse(localStorage.getItem("currentDriver")) || {id: 1, name: "Test Driver", bus: "B-01"};
+
+    document.getElementById('welcomeTxt').innerText = `Welcome, ${driver.name}!`;
+    document.getElementById('busID').innerText = driver.bus;
+
+    function getTodayStr() {
+        const now = new Date();
+        return `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+    }
+
+    // --- STARTUP LOGIC ENGINE ---
+    function updateFleetEngine() {
+        const today = getTodayStr();
+        const history = JSON.parse(localStorage.getItem(`history_${driver.id}`)) || [];
+        const record = history.find(r => r.date === today);
+        const badge = document.getElementById('liveStatusBadge');
+        const busDisplay = document.getElementById('busID');
+
+        if (!record || record.status === 'Absent') {
+            badge.innerHTML = `<span style="color:var(--danger); font-weight:800;">● OFFLINE</span>`;
+            busDisplay.classList.remove('timer-glow');
+            return;
+        }
+
+        if (record.status === 'Present') {
+            const startTime = localStorage.getItem(`startup_${driver.id}_${today}`);
+            
+            if (!startTime) {
+                badge.innerHTML = `<span style="color:var(--success); font-weight:800;">● STANDBY</span>`;
+                return;
+            }
+
+            const elapsed = Math.floor((Date.now() - parseInt(startTime)) / 1000);
+            const remaining = STARTUP_TIME - elapsed;
+
+            if (remaining > 0) {
+                busDisplay.classList.add('timer-glow');
+                badge.innerHTML = `<span style="color:var(--warning); font-weight:800;">🟡 STARTING IN ${remaining}s</span>`;
+            } else {
+                busDisplay.classList.remove('timer-glow');
+                badge.innerHTML = `<span style="color:var(--success); font-weight:800; text-shadow: 0 0 10px var(--success);">🟢 MOVING LIVE</span>`;
+            }
+        }
+    }
+
+    function saveDuty(status) {
+        const today = getTodayStr();
+        let history = JSON.parse(localStorage.getItem(`history_${driver.id}`)) || [];
+        
+        history = history.filter(r => r.date !== today);
+        history.unshift({ date: today, status: status });
+        localStorage.setItem(`history_${driver.id}`, JSON.stringify(history));
+
+        if (status === 'Present') {
+            localStorage.setItem(`startup_${driver.id}_${today}`, Date.now().toString());
+        } else {
+            localStorage.removeItem(`startup_${driver.id}_${today}`);
+        }
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = "";
+        const history = JSON.parse(localStorage.getItem(`history_${driver.id}`)) || [];
+        const today = new Date().getDate();
+        
+        for(let i=1; i<=30; i++) {
+            const dateStr = `${i}/${new Date().getMonth()+1}/${new Date().getFullYear()}`;
+            const record = history.find(r => r.date === dateStr);
+            const statusClass = record ? record.status.toLowerCase() : "";
+            grid.innerHTML += `<div class="day ${statusClass}">${i}</div>`;
+        }
+    }
+
+    setInterval(updateFleetEngine, 1000);
+    renderCalendar();
+</script>
+</body>
+</html>

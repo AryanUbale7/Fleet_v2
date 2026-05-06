@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Unit Diagnostics | GuardianRoute World</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --sidebar-glass: rgba(15, 23, 42, 0.85);
+            --card-glass: rgba(30, 41, 59, 0.4);
+            --primary: #6366f1;
+            --accent: #06b6d4;
+            --glow: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        .cyber-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
+        }
+        .cyber-bg::after {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* SIDEBAR */
+        .sidebar { 
+            width: 260px; background: var(--sidebar-glass); backdrop-filter: blur(25px); 
+            padding: 40px 24px; border-right: 1px solid var(--border); 
+            position: fixed; height: 100vh; display: flex; flex-direction: column; z-index: 1000;
+        }
+
+        /* MAIN AREA */
+        .main { margin-left: 260px; flex: 1; padding: 40px; }
+
+        /* COMMAND HEADER */
+        .unit-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        .unit-title h1 { font-size: 38px; font-weight: 800; color: var(--primary); text-shadow: 0 0 20px rgba(99, 102, 241, 0.4); }
+        
+        .status-ribbon { display: flex; gap: 15px; }
+        .ribbon-item { background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+
+        /* LAYOUT GRID */
+        .details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
+
+        .glass-card { background: var(--card-glass); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid var(--border); margin-bottom: 25px; }
+        .card-title { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+        /* TELEMETRY GAUGES */
+        .telemetry-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .gauge-box { text-align: center; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid var(--border); }
+        .gauge-value { font-size: 24px; font-weight: 800; color: var(--accent); margin-top: 5px; }
+
+        /* CAMERA FEED */
+        .camera-feed { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; position: relative; overflow: hidden; }
+        .camera-overlay { position: absolute; top: 10px; left: 10px; color: var(--success); font-family: monospace; font-size: 10px; text-shadow: 0 0 5px #000; }
+        .camera-scanline { position: absolute; width: 100%; height: 2px; background: rgba(255,255,255,0.1); top: 0; animation: scan 3s linear infinite; }
+
+        /* DRIVER PROFILE */
+        .driver-box { display: flex; align-items: center; gap: 20px; }
+        .driver-img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary); padding: 3px; }
+
+        /* AI DIAGNOSTICS */
+        .ai-log { font-size: 12px; height: 180px; overflow-y: auto; color: var(--muted); line-height: 1.8; }
+        .ai-log b { color: var(--primary); }
+
+        /* ANIMATIONS */
+        @keyframes scan { from { top: 0; } to { top: 100%; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .blink { animation: pulse 2s infinite; }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) { .details-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="cyber-bg"></div>
+
+<div class="sidebar">
+    <div style="text-align:center; margin-bottom:40px;">
+        <img src="school-logo.png" style="width:60px; filter:drop-shadow(0 0 10px var(--primary))">
+        <div style="font-size:10px; font-weight:800; color:var(--primary); margin-top:10px;">FLEET INTELLIGENCE</div>
+    </div>
+    <nav>
+        <a href="index.html" style="text-decoration:none; color:var(--muted); font-size:14px; display:flex; gap:10px; margin-bottom:20px;"><i data-lucide="arrow-left"></i> Back to Fleet</a>
+    </nav>
+</div>
+
+<main class="main">
+    <header class="unit-header">
+        <div class="unit-title">
+            <h1 id="bus-id-label">UNIT #---</h1>
+            <p style="color:var(--muted); font-size:13px;">AI Diagnostics Profile • Hardware Node <span id="node-id">---</span></p>
+        </div>
+        <div class="status-ribbon">
+            <div class="ribbon-item">GPS: <span style="color:var(--success)">LOCKED</span></div>
+            <div class="ribbon-item">SIG: <span style="color:var(--accent)">14ms</span></div>
+            <div class="ribbon-item">AI: <span style="color:var(--glow)">ACTIVE</span></div>
+        </div>
+    </header>
+
+    <div class="details-grid">
+        <div class="left-col">
+            
+            <div class="telemetry-strip">
+                <div class="gauge-box">
+                    <span>THERMAL</span>
+                    <div class="gauge-value" id="val-thermal">--°C</div>
+                </div>
+                <div class="gauge-box">
+                    <span>CORE ENERGY</span>
+                    <div class="gauge-value" id="val-energy">--%</div>
+                </div>
+                <div class="gauge-box">
+                    <span>TIRE PSI</span>
+                    <div class="gauge-value" id="val-psi">-- PSI</div>
+                </div>
+                <div class="gauge-box">
+                    <span>LOAD WEAR</span>
+                    <div class="gauge-value" id="val-wear">--%</div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-title"><i data-lucide="zap"></i> Live Power & Thermal Efficiency</div>
+                <div style="height:300px;"><canvas id="dynamicChart"></canvas></div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-title"><i data-lucide="history"></i> Maintenance History & Event Log</div>
+                <div id="maintenance-log" class="ai-log">
+                    </div>
+            </div>
+        </div>
+
+        <div class="right-col">
+            
+            <div class="glass-card">
+                <div class="card-title"><i data-lucide="video"></i> Unit Visual Feed (Cam-01)</div>
+                <div class="camera-feed">
+                    <div class="camera-overlay">REC ● 05-06-2026 16:45:10<br>UNIT_ID: <span id="cam-id">--</span><br>LOC: MIRA RD</div>
+                    <div class="camera-scanline"></div>
+                    <div style="width:100%; height:100%; display:grid; place-items:center; color:rgba(255,255,255,0.1)">
+                        <i data-lucide="eye" style="width:80px; height:80px;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-title"><i data-lucide="user"></i> Pilot Profile</div>
+                <div class="driver-box">
+                    <img src="https://i.pravatar.cc/150?u=bus" class="driver-img">
+                    <div>
+                        <h3 id="driver-name">--</h3>
+                        <p style="font-size:12px; color:var(--muted);">Certified Level 4 Driver</p>
+                        <p style="font-size:10px; color:var(--success);">Status: ON-DUTY</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-title"><i data-lucide="cpu"></i> AI Predictive Diagnostics</div>
+                <div id="ai-feed" class="ai-log">
+                    </div>
+                <div style="margin-top:15px; padding:10px; background:rgba(16,185,129,0.1); border-radius:10px; font-size:11px; color:var(--success); border:1px solid rgba(16,185,129,0.2);">
+                    <b>RECOMENDATION:</b> System optimal. No upcoming maintenance predicted for 450km.
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<script>
+    lucide.createIcons();
+
+    // 1. GET BUS ID FROM URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const busId = urlParams.get('id') || 'B-01';
+
+    // 2. MOCK DATA REPOSITORY
+    const fleetData = {
+        'B-01': { driver: 'Ramesh Kumar', route: 'Mira Road Sector 10', thermal: 82, energy: 88, wear: 12, psi: 32 },
+        'B-02': { driver: 'Suresh Singh', route: 'Bhayandar East Station', thermal: 98, energy: 41, wear: 64, psi: 28 },
+        'B-03': { driver: 'Abdul Khan', route: 'Kashimira Highway', thermal: 76, energy: 91, wear: 8, psi: 33 },
+        'B-04': { driver: 'Mahesh Patil', route: 'Golden Nest Circle', thermal: 84, energy: 75, wear: 24, psi: 31 },
+        'B-05': { driver: 'Vikram Dada', route: 'Uttan Coastal Road', thermal: 107, energy: 27, wear: 72, psi: 26 }
+    };
+
+    const activeBus = fleetData[busId];
+
+    // 3. UI INITIALIZATION
+    document.getElementById('bus-id-label').innerText = `UNIT #${busId}`;
+    document.getElementById('node-id').innerText = `N-${busId.split('-')[1]}`;
+    document.getElementById('cam-id').innerText = busId;
+    document.getElementById('driver-name').innerText = activeBus.driver;
+
+    // 4. TELEMETRY ENGINE
+    function simulateTelemetry() {
+        // Subtle fluctuations
+        const currentThermal = (activeBus.thermal + (Math.random() * 4 - 2)).toFixed(1);
+        const currentEnergy = (activeBus.energy - (Math.random() * 0.1)).toFixed(1);
+        
+        document.getElementById('val-thermal').innerText = `${currentThermal}°C`;
+        document.getElementById('val-energy').innerText = `${currentEnergy}%`;
+        document.getElementById('val-psi').innerText = `${activeBus.psi} PSI`;
+        document.getElementById('val-wear').innerText = `${activeBus.wear}%`;
+
+        // Color Logic
+        if(currentThermal > 100) document.getElementById('val-thermal').style.color = 'var(--danger)';
+        if(currentEnergy < 30) document.getElementById('val-energy').style.color = 'var(--warning)';
+    }
+
+    // 5. AI DIAGNOSTICS ENGINE
+    const aiLogs = [
+        "Analyzing brake pad frequency...",
+        "Engine thermal efficiency at 94.2%",
+        "GPS coordinate sync completed.",
+        "Energy consumption optimized for route.",
+        "Tire pressure stable across all units.",
+        "Predicting fuel consumption for Mira Road traffic...",
+        "Sensor 04 (O2) reporting stable data."
+    ];
+
+    function updateAILog() {
+        const feed = document.getElementById('ai-feed');
+        const time = new Date().toLocaleTimeString();
+        const msg = aiLogs[Math.floor(Math.random() * aiLogs.length)];
+        const log = document.createElement('div');
+        log.style.marginBottom = '10px';
+        log.innerHTML = `[${time}] <b>AI:</b> ${msg}`;
+        feed.prepend(log);
+        if(feed.children.length > 8) feed.lastChild.remove();
+    }
+
+    // 6. LIVE CHART
+    const ctx = document.getElementById('dynamicChart').getContext('2d');
+    const dynamicChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(15).fill(''),
+            datasets: [{
+                label: 'Thermal Load',
+                data: Array(15).fill(0).map(() => activeBus.thermal + Math.random() * 5),
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }, {
+                label: 'Energy Efficiency',
+                data: Array(15).fill(0).map(() => activeBus.energy + Math.random() * 5),
+                borderColor: '#06b6d4',
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                x: { display: false }
+            },
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10 } } }
+        }
+    });
+
+    function updateChart() {
+        dynamicChart.data.datasets[0].data.push(activeBus.thermal + Math.random() * 5);
+        dynamicChart.data.datasets[0].data.shift();
+        dynamicChart.data.datasets[1].data.push(activeBus.energy + Math.random() * 5);
+        dynamicChart.data.datasets[1].data.shift();
+        dynamicChart.update();
+    }
+
+    // 7. INITIALIZE REPEATING CYCLES
+    setInterval(simulateTelemetry, 2000);
+    setInterval(updateAILog, 4000);
+    setInterval(updateChart, 1500);
+
+    // Initial Logs
+    document.getElementById('maintenance-log').innerHTML = `
+        <div style="margin-bottom:10px;">[15-04-2026] <b>Service:</b> Brake Pad Replacement (Front Left)</div>
+        <div style="margin-bottom:10px;">[28-03-2026] <b>Update:</b> Firmware v4.2.1 AI Patch installed</div>
+        <div style="margin-bottom:10px;">[10-03-2026] <b>Service:</b> Tire rotation & Alignment</div>
+    `;
+
+    simulateTelemetry();
+</script>
+</body>
+</html>

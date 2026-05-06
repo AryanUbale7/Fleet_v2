@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarajya Gurukul | Staff Portal</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #8b5cf6; --bg: #f8fafc; --white: #ffffff; --sidebar-bg: #1e1b4b; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg); display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--sidebar-bg); color: white; padding: 40px 20px; position: fixed; height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .main { margin-left: 260px; flex: 1; padding: 40px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .student-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        .btn-status { padding: 8px 16px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 12px; }
+        .btn-present { background: #f1f5f9; color: #64748b; }
+        .btn-present.active { background: #dcfce7; color: #15803d; }
+        .btn-absent { background: #f1f5f9; color: #64748b; }
+        .btn-absent.active { background: #fee2e2; color: #b91c1c; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+        .calendar-day { padding: 8px; text-align: center; border-radius: 8px; font-size: 11px; background: #f8fafc; }
+        .calendar-day.present { background: #dcfce7; color: #15803d; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <img src="school-logo.png" style="width: 70px; margin-bottom: 10px;">
+        <h2 style="font-size: 16px; color: #fbbf24; margin-bottom: 30px;">SWARAJYA GURUKUL</h2>
+        <nav style="width: 100%;">
+            <div class="nav-item" style="padding: 15px; background: var(--primary); border-radius: 10px; cursor: pointer;">
+                <i data-lucide="users"></i> Student Boarding
+            </div>
+        </nav>
+        <div onclick="logout()" style="margin-top: auto; cursor: pointer; color: #fca5a5;"><i data-lucide="log-out"></i> Logout</div>
+    </div>
+
+    <main class="main">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h1 id="busHeader">Bus Loading...</h1>
+                <p id="cleanerInfo" style="color: #64748b;"></p>
+            </div>
+            <button onclick="markStaffAttendance()" id="staffBtn" class="btn-status" style="background: var(--primary); color: white; padding: 12px 20px;">Mark Staff Attendance</button>
+        </header>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+            <div class="card">
+                <h3>Students List (Route Area)</h3>
+                <div id="studentList" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div class="card">
+                <h3>My Attendance</h3>
+                <div class="calendar-grid" id="calendar"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="students.js"></script>
+    <script>
+        lucide.createIcons();
+        const staff = JSON.parse(localStorage.getItem("currentCleaner"));
+        if(!staff) window.location.href = "login.html";
+
+        document.getElementById('busHeader').innerText = "Route " + staff.bus;
+        document.getElementById('cleanerInfo').innerText = "Attendant: " + staff.name;
+
+        // Filter students for this cleaner's bus
+        const myStudents = globalStudentData.filter(s => s.bus === staff.bus);
+
+        function renderStudents() {
+            const list = document.getElementById('studentList');
+            list.innerHTML = myStudents.map(s => {
+                const status = localStorage.getItem(`status_${s.id}_${getToday()}`) || "";
+                return `
+                <div class="student-item">
+                    <div>
+                        <strong style="font-size: 14px;">${s.name}</strong><br>
+                        <small style="color: #64748b;">${s.area}</small>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-status btn-present ${status === 'Present' ? 'active' : ''}" onclick="setStatus(${s.id}, 'Present')">Present</button>
+                        <button class="btn-status btn-absent ${status === 'Absent' ? 'active' : ''}" onclick="setStatus(${s.id}, 'Absent')">Absent</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function setStatus(id, status) {
+            localStorage.setItem(`status_${id}_${getToday()}`, status);
+            renderStudents();
+        }
+
+        function getToday() {
+            const d = new Date();
+            return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+        }
+
+        function markStaffAttendance() {
+            localStorage.setItem("cleaner_present_" + staff.id, getToday());
+            const history = JSON.parse(localStorage.getItem("cleaner_history_" + staff.id)) || [];
+            if(!history.includes(new Date().getDate())) {
+                history.push(new Date().getDate());
+                localStorage.setItem("cleaner_history_" + staff.id, JSON.stringify(history));
+            }
+            renderCalendar();
+            alert("Attendance Marked for Admin!");
+        }
+
+        function renderCalendar() {
+            const cal = document.getElementById('calendar');
+            const history = JSON.parse(localStorage.getItem("cleaner_history_" + staff.id)) || [];
+            cal.innerHTML = "";
+            for(let i=1; i<=28; i++) {
+                const active = history.includes(i) ? "present" : "";
+                cal.innerHTML += `<div class="calendar-day ${active}">${i}</div>`;
+            }
+        }
+
+        function logout() { localStorage.removeItem("currentCleaner"); window.location.href = "login.html"; }
+
+        window.onload = () => { renderStudents(); renderCalendar(); };
+    </script>
+</body>
+</html>

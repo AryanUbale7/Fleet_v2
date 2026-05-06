@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuardianRoute World | AI Route Intelligence</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --sidebar-glass: rgba(15, 23, 42, 0.75);
+            --card-glass: rgba(30, 41, 59, 0.4);
+            --primary: #6366f1;
+            --accent: #06b6d4;
+            --glow: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --neon-glow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* NEURAL BACKGROUND */
+        .cyber-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
+        }
+        .cyber-bg::after {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+
+        /* SIDEBAR */
+        .sidebar { 
+            width: 280px; background: var(--sidebar-glass); backdrop-filter: blur(20px); 
+            padding: 40px 24px; border-right: 1px solid var(--border); 
+            position: fixed; height: 95vh; margin: 2.5vh 0 2.5vh 20px;
+            border-radius: 24px; display: flex; flex-direction: column; z-index: 1000;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+
+        .logo-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 50px; text-decoration: none; }
+        .school-logo { width: 60px; filter: drop-shadow(0 0 10px var(--primary)); animation: float 4s ease-in-out infinite; }
+        .logo-text { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #fbbf24; }
+
+        .nav-item { padding: 14px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; transition: 0.3s; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 15px; text-decoration: none; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-item.active { background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+
+        /* MAIN LAYOUT */
+        .main { margin-left: 320px; flex: 1; padding: 40px; display: grid; grid-template-columns: 1fr 300px; gap: 30px; }
+
+        .command-header { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .command-header h1 { font-weight: 800; font-size: 32px; letter-spacing: -1px; }
+
+        .btn-create { 
+            background: var(--primary); color: white; padding: 12px 24px; border-radius: 14px; border: none;
+            font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+        .btn-create:hover { transform: translateY(-3px); box-shadow: 0 0 30px rgba(99, 102, 241, 0.6); }
+
+        /* ROUTE MODULES */
+        .route-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 25px; }
+        .route-card { 
+            background: var(--card-glass); backdrop-filter: blur(15px); padding: 25px; 
+            border-radius: 24px; border: 1px solid var(--border); transition: 0.4s; position: relative; overflow: hidden;
+        }
+        .route-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: var(--neon-glow); }
+
+        .route-name { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #fff; }
+        
+        /* MINI TELEMETRY STRIP */
+        .tele-strip { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tele-tag { background: rgba(255,255,255,0.03); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--muted); flex: 1; text-align: center; }
+        .tele-tag b { color: var(--accent); display: block; font-size: 12px; }
+
+        .status-badge { 
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; 
+            background: rgba(16, 185, 129, 0.1); color: var(--success); border-radius: 50px; 
+            font-size: 10px; font-weight: 800; border: 1px solid rgba(16, 185, 129, 0.2);
+            text-transform: uppercase; margin-bottom: 15px;
+        }
+        .pulse { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse-anim 2s infinite; }
+
+        /* AI LOG PANEL */
+        .ai-panel { display: flex; flex-direction: column; gap: 20px; }
+        .ai-card { background: var(--card-glass); border-radius: 20px; border: 1px solid var(--border); padding: 20px; }
+        .log-container { font-size: 11px; height: 300px; overflow-y: auto; color: var(--muted); }
+        .log-item { padding: 10px; border-left: 2px solid var(--primary); background: rgba(255,255,255,0.02); margin-bottom: 8px; border-radius: 0 8px 8px 0; animation: slideIn 0.3s ease-out; }
+
+        /* MODALS */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(10px); z-index: 2000; justify-content: flex-end;
+        }
+        .modal-content {
+            width: 480px; height: 100%; background: #0f172a; padding: 40px; 
+            border-left: 1px solid var(--border); box-shadow: -20px 0 50px rgba(0,0,0,0.5); 
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;
+        }
+
+        /* ANIMATIONS */
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulse-anim { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .sidebar { 
+    width: 280px; 
+    background: rgba(15, 23, 42, 0.75); 
+    backdrop-filter: blur(20px); 
+    padding: 30px 20px; 
+    border-right: 1px solid rgba(255, 255, 255, 0.08); 
+    position: fixed; 
+    height: 96vh; 
+    margin: 2vh 0 2vh 20px;
+    border-radius: 28px;
+    display: flex; 
+    flex-direction: column; 
+    z-index: 1000;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+.logo-container { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 12px; 
+    margin-bottom: 40px; 
+    text-decoration: none; 
+}
+
+.school-logo { 
+    width: 80px; 
+    height: auto; 
+    filter: drop-shadow(0 0 15px #6366f1); 
+    animation: float 4s ease-in-out infinite;
+}
+
+.logo-text { 
+    font-size: 14px; 
+    font-weight: 800; 
+    letter-spacing: 2px; 
+    color: #fbbf24;
+}
+
+.nav-item { 
+    padding: 12px 18px; 
+    margin-bottom: 5px; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    transition: 0.3s; 
+    font-weight: 500; 
+    color: #94a3b8; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    text-decoration: none; 
+}
+
+.nav-item i { width: 18px; height: 18px; }
+
+.nav-item:hover { 
+    background: rgba(255,255,255,0.05); 
+    color: #fff; 
+    transform: translateX(5px);
+}
+
+.nav-item.active { 
+    background: rgba(99, 102, 241, 0.15); 
+    color: #6366f1; 
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+@keyframes float { 
+    0%, 100% { transform: translateY(0); } 
+    50% { transform: translateY(-10px); } 
+}
+    </style>
+</head>
+<body>
+
+<div class="cyber-bg"></div>
+<div class="sidebar">
+    <a href="index.html" class="logo-container">
+        <img src="school-logo.png" alt="Swarajya Gurukul" class="school-logo">
+        <span class="logo-text">GUARDIAN ROUTE</span>
+    </a>
+    
+    <nav class="nav-group">
+        <a href="index.html" class="nav-item" id="nav-dashboard">
+            <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
+        </a>
+        <a href="fleet.html" class="nav-item" id="nav-fleet">
+            <i data-lucide="map"></i> <span>Geospatial Live</span>
+        </a>
+        <a href="bus-health.html" class="nav-item" id="nav-health">
+            <i data-lucide="activity"></i> <span>System Health</span>
+        </a>
+        <a href="routes.html" class="nav-item" id="nav-routes">
+            <i data-lucide="route"></i> <span>Navigation</span>
+        </a>
+        <a href="students.html" class="nav-item" id="nav-students">
+            <i data-lucide="users"></i> <span>Students</span>
+        </a>
+        <a href="driver-admin.html" class="nav-item" id="nav-driver">
+            <i data-lucide="shield-check"></i> <span>Staff Logic</span>
+        </a>
+        <a href="manage-assignment.html" class="nav-item" id="nav-duty">
+            <i data-lucide="user-cog"></i> <span>Assignments</span>
+        </a>
+        <a href="settings.html" class="nav-item" id="nav-settings">
+            <i data-lucide="sliders"></i> <span>Configuration</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer" style="margin-top:auto;">
+        <div class="nav-item" onclick="logout()" style="color:var(--danger); background: rgba(239, 68, 68, 0.05); border-radius: 12px;">
+            <i data-lucide="log-out"></i> <span>Secure Exit</span>
+        </div>
+    </div>
+</div>
+<main class="main">
+    <header class="command-header">
+        <div>
+            <h1>Neural Route Intelligence</h1>
+            <p style="color: var(--muted); font-size: 13px;">AI Optimization Cycle Active • Mira Bhayander Sector</p>
+        </div>
+        <button class="btn-create" onclick="openCreateModal()"><i data-lucide="zap"></i> Initiate AI Vector</button>
+    </header>
+    
+    <div class="route-grid" id="routeGrid"></div>
+
+    <aside class="ai-panel">
+        <div class="ai-card">
+            <div style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px;">AI Activity Feed</div>
+            <div class="log-container" id="aiLogs"></div>
+        </div>
+        <div class="ai-card">
+            <div style="font-size: 10px; font-weight: 800; color: var(--accent); text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px;">System Health</div>
+            <div style="font-size: 12px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                <span>Neural Sync</span><span style="color: var(--success);">99.2%</span>
+            </div>
+            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;">
+                <div style="width: 99%; height: 100%; background: var(--accent); box-shadow: 0 0 10px var(--accent);"></div>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<div id="createModal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
+            <h2 style="font-weight:800;">Deploy New Vector</h2>
+            <i data-lucide="x" onclick="closeCreateModal()" style="cursor:pointer"></i>
+        </div>
+        <form onsubmit="handleCreateRoute(event)" style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Vector Name</label>
+                <input type="text" id="newName" placeholder="e.g., Protocol Delta" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: #fff;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Nodes</label>
+                    <input type="number" id="newStops" placeholder="8" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: #fff;">
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Payload</label>
+                    <input type="number" id="newStudents" placeholder="40" required style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: #fff;">
+                </div>
+            </div>
+            <button type="submit" class="btn-create" style="width: 100%; justify-content: center; padding: 15px;">DEPLOY AI ROUTE</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    const routes = [
+        { id: 1, name: "Mira Road → RBK School", stops: 8, bus: "B-01", students: 42, efficiency: 94, traffic: 15, eta: 12 },
+        { id: 2, name: "Bhayandar East → RBK School", stops: 6, bus: "B-02", students: 38, efficiency: 82, traffic: 45, eta: 24 },
+        { id: 3, name: "Kashimira → RBK School", stops: 7, bus: "B-03", students: 47, efficiency: 89, traffic: 22, eta: 18 },
+        { id: 4, name: "Golden Nest → RBK School", stops: 5, bus: "B-04", students: 29, efficiency: 97, traffic: 8, eta: 9 },
+        { id: 5, name: "Uttan → RBK School", stops: 9, bus: "B-05", students: 34, efficiency: 76, traffic: 62, eta: 38 }
+    ];
+
+    const logs = [
+        "AI rerouted Unit B-02 due to congestion.",
+        "Neural satellite link synchronized.",
+        "Traffic pattern analyzed: Sector 10.",
+        "ETA optimization cycle complete.",
+        "Emergency priority path verified.",
+        "GPS Signal: Multi-node lock established."
+    ];
+
+    function addLog() {
+        const container = document.getElementById('aiLogs');
+        const time = new Date().toLocaleTimeString([], { hour12: false });
+        const div = document.createElement('div');
+        div.className = 'log-item';
+        div.innerHTML = `[${time}] <b>AI:</b> ${logs[Math.floor(Math.random() * logs.length)]}`;
+        container.prepend(div);
+        if(container.children.length > 10) container.lastChild.remove();
+    }
+
+    // TELEMETRY SIMULATION ENGINE
+    function updateTelemetry() {
+        routes.forEach(route => {
+            // Realistic drift
+            route.eta += (Math.random() > 0.5 ? 0.2 : -0.2);
+            route.traffic += (Math.random() > 0.5 ? 1 : -1);
+            if(route.traffic < 5) route.traffic = 5;
+            if(route.traffic > 90) route.traffic = 90;
+        });
+        renderRoutes();
+    }
+
+    function renderRoutes() {
+        const grid = document.getElementById("routeGrid");
+        grid.innerHTML = "";
+        routes.forEach((route) => {
+            const statusColor = route.traffic > 60 ? 'var(--danger)' : (route.traffic > 30 ? 'var(--warning)' : 'var(--success)');
+            grid.innerHTML += `
+                <div class="route-card" onclick="window.location.href='bus-details.html?id=${route.bus}'" style="cursor:pointer;">
+                    <div class="status-badge" style="color: ${statusColor}; border-color: ${statusColor}">
+                        <div class="pulse" style="background: ${statusColor}"></div> 
+                        ${route.traffic > 60 ? 'High Congestion' : 'AI Optimized'}
+                    </div>
+                    <div class="route-name">${route.name}</div>
+                    
+                    <div class="tele-strip">
+                        <div class="tele-tag">Efficiency<b>${route.efficiency}%</b></div>
+                        <div class="tele-tag">Traffic<b>${route.traffic}%</b></div>
+                        <div class="tele-tag">ETA<b>${route.eta.toFixed(1)}m</b></div>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 8px;">
+                            <span>Active Payload</span><b>${route.students} Users</b>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted);">
+                            <span>Hardware Assigned</span><b style="color: var(--primary)">Unit ${route.bus}</b>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 10px; font-weight: 800; color: var(--muted); text-align: center; letter-spacing: 1px; text-transform: uppercase;">
+                        Click to expand deep diagnostics
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // MODAL LOGIC
+    function openCreateModal() { document.getElementById("createModal").style.display = "flex"; }
+    function closeCreateModal() { document.getElementById("createModal").style.display = "none"; }
+    
+    function handleCreateRoute(event) {
+        event.preventDefault();
+        routes.unshift({
+            id: Date.now(),
+            name: document.getElementById("newName").value,
+            stops: document.getElementById("newStops").value,
+            students: document.getElementById("newStudents").value,
+            bus: "B-0" + (routes.length + 1),
+            efficiency: 100,
+            traffic: 5,
+            eta: 10
+        });
+        renderRoutes();
+        closeCreateModal();
+    }
+
+    // START ENGINES
+    setInterval(updateTelemetry, 3000);
+    setInterval(addLog, 5000);
+    renderRoutes();
+    addLog();
+
+    function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+    }
+
+    window.onclick = (e) => { if (e.target.className === "modal-overlay") closeCreateModal(); }
+    // Har page ke end mein ye script add karein
+document.addEventListener("DOMContentLoaded", () => {
+    const currentPage = window.location.pathname.split("/").pop() || "index.html";
+    
+    const navMapping = {
+        "index.html": "nav-dashboard",
+        "fleet.html": "nav-fleet",
+        "bus-health.html": "nav-health",
+        "routes.html": "nav-routes",
+        "students.html": "nav-students",
+        "driver-admin.html": "nav-driver",
+        "manage-assignment.html": "nav-duty",
+        "settings.html": "nav-settings"
+    };
+
+    // Puraane active class hatayein aur naye page par lagayein
+    Object.values(navMapping).forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove("active");
+    });
+
+    if (navMapping[currentPage]) {
+        const activeEl = document.getElementById(navMapping[currentPage]);
+        if(activeEl) activeEl.classList.add("active");
+    }
+    
+    lucide.createIcons(); // Icons load karne ke liye
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuardianRoute World | AI Fleet Command</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --sidebar-glass: rgba(15, 23, 42, 0.75);
+            --card-glass: rgba(30, 41, 59, 0.4);
+            --primary: #6366f1;
+            --accent: #06b6d4;
+            --glow: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* CYBER BACKGROUND */
+        .cyber-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
+        }
+
+        /* SIDEBAR */
+        .sidebar { 
+            width: 260px; background: var(--sidebar-glass); backdrop-filter: blur(20px); 
+            padding: 30px 20px; border-right: 1px solid var(--border); 
+            position: fixed; height: 96vh; margin: 2vh 0 2vh 20px;
+            border-radius: 24px; display: flex; flex-direction: column; z-index: 1000;
+        }
+        .logo-text { font-size: 14px; font-weight: 800; letter-spacing: 1px; color: var(--primary); text-align: center; margin-bottom: 30px; }
+
+        .nav-item { padding: 12px 18px; margin-bottom: 6px; border-radius: 12px; cursor: pointer; transition: 0.3s; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-item.active { background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+
+        /* MAIN CONTENT AREA */
+        .main { margin-left: 300px; flex: 1; padding: 20px; display: grid; grid-template-columns: 1fr 320px; gap: 20px; height: 100vh; }
+
+        /* CENTER MAP PANEL */
+        .map-section { display: flex; flex-direction: column; gap: 15px; }
+        .map-container { 
+            flex: 1; background: var(--card-glass); backdrop-filter: blur(10px);
+            border-radius: 24px; padding: 8px; border: 1px solid var(--border); position: relative;
+        }
+        #map { height: 100%; width: 100%; border-radius: 18px; filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+
+        /* RIGHT COMMAND PANEL */
+        .command-panel { 
+            display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 5px;
+        }
+        .glass-card { 
+            background: var(--card-glass); backdrop-filter: blur(15px); padding: 20px; 
+            border-radius: 20px; border: 1px solid var(--border);
+        }
+        .card-label { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+        /* TELEMETRY FEED */
+        .activity-feed { font-size: 11px; max-height: 250px; overflow-y: auto; }
+        .feed-item { padding: 10px; border-bottom: 1px solid var(--border); border-left: 2px solid var(--primary); background: rgba(255,255,255,0.02); margin-bottom: 5px; border-radius: 0 8px 8px 0; animation: slideIn 0.3s ease-out; }
+
+        /* STATUSES */
+        .status-pill { padding: 4px 10px; border-radius: 50px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+        .moving { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .starting { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid var(--warning); animation: pulse 1s infinite; }
+
+        /* CUSTOM POPUP SpaceX Style */
+        .leaflet-popup-content-wrapper { background: var(--bg-deep) !important; color: white !important; border: 1px solid var(--primary); border-radius: 15px !important; padding: 5px; }
+        .leaflet-popup-tip { background: var(--primary) !important; }
+        .tele-box h4 { color: var(--primary); margin-bottom: 5px; font-size: 16px; }
+        .tele-box p { font-size: 11px; color: var(--muted); margin: 2px 0; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .sidebar { 
+    width: 280px; 
+    background: rgba(15, 23, 42, 0.75); 
+    backdrop-filter: blur(20px); 
+    padding: 30px 20px; 
+    border-right: 1px solid rgba(255, 255, 255, 0.08); 
+    position: fixed; 
+    height: 96vh; 
+    margin: 2vh 0 2vh 20px;
+    border-radius: 28px;
+    display: flex; 
+    flex-direction: column; 
+    z-index: 1000;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+.logo-container { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 12px; 
+    margin-bottom: 40px; 
+    text-decoration: none; 
+}
+
+.school-logo { 
+    width: 80px; 
+    height: auto; 
+    filter: drop-shadow(0 0 15px #6366f1); 
+    animation: float 4s ease-in-out infinite;
+}
+
+.logo-text { 
+    font-size: 14px; 
+    font-weight: 800; 
+    letter-spacing: 2px; 
+    color: #fbbf24;
+}
+
+.nav-item { 
+    padding: 12px 18px; 
+    margin-bottom: 5px; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    transition: 0.3s; 
+    font-weight: 500; 
+    color: #94a3b8; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    text-decoration: none; 
+}
+
+.nav-item i { width: 18px; height: 18px; }
+
+.nav-item:hover { 
+    background: rgba(255,255,255,0.05); 
+    color: #fff; 
+    transform: translateX(5px);
+}
+
+.nav-item.active { 
+    background: rgba(99, 102, 241, 0.15); 
+    color: #6366f1; 
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+@keyframes float { 
+    0%, 100% { transform: translateY(0); } 
+    50% { transform: translateY(-10px); } 
+}
+    </style>
+</head>
+<body>
+
+<div class="cyber-bg"></div>
+<div class="sidebar">
+    <a href="index.html" class="logo-container">
+        <img src="school-logo.png" alt="Swarajya Gurukul" class="school-logo">
+        <span class="logo-text">GUARDIAN ROUTE</span>
+    </a>
+    
+    <nav class="nav-group">
+        <a href="index.html" class="nav-item" id="nav-dashboard">
+            <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
+        </a>
+        <a href="fleet.html" class="nav-item" id="nav-fleet">
+            <i data-lucide="map"></i> <span>Geospatial Live</span>
+        </a>
+        <a href="bus-health.html" class="nav-item" id="nav-health">
+            <i data-lucide="activity"></i> <span>System Health</span>
+        </a>
+        <a href="routes.html" class="nav-item" id="nav-routes">
+            <i data-lucide="route"></i> <span>Navigation</span>
+        </a>
+        <a href="students.html" class="nav-item" id="nav-students">
+            <i data-lucide="users"></i> <span>Students</span>
+        </a>
+        <a href="driver-admin.html" class="nav-item" id="nav-driver">
+            <i data-lucide="shield-check"></i> <span>Staff Logic</span>
+        </a>
+        <a href="manage-assignment.html" class="nav-item" id="nav-duty">
+            <i data-lucide="user-cog"></i> <span>Assignments</span>
+        </a>
+        <a href="settings.html" class="nav-item" id="nav-settings">
+            <i data-lucide="sliders"></i> <span>Configuration</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer" style="margin-top:auto;">
+        <div class="nav-item" onclick="logout()" style="color:var(--danger); background: rgba(239, 68, 68, 0.05); border-radius: 12px;">
+            <i data-lucide="log-out"></i> <span>Secure Exit</span>
+        </div>
+    </div>
+</div>
+
+<main class="main">
+    <section class="map-section">
+        <header style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 style="font-weight: 800; font-size: 24px; letter-spacing: -1px;">AI Geospatial Intelligence</h2>
+                <p style="color: var(--muted); font-size: 12px;">Satellite Telemetry • Active Tracking 5 Units</p>
+            </div>
+            <div class="starting" style="padding: 8px 16px; border-radius: 50px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <div style="width: 8px; height: 8px; background: var(--warning); border-radius: 50%;"></div>
+                SATELLITE SYNC ACTIVE
+            </div>
+        </header>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </section>
+
+    <aside class="command-panel">
+        <div class="glass-card">
+            <div class="card-label"><i data-lucide="list" style="width: 14px;"></i> Live Activity Feed</div>
+            <div class="activity-feed" id="activityFeed">
+                </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="card-label"><i data-lucide="zap" style="width: 14px;"></i> Fleet Telemetry</div>
+            <div id="telemetryStats">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-size: 12px; color: var(--muted);">Avg. Fleet Velocity</span>
+                    <span style="font-size: 12px; font-weight: 700; color: var(--accent);">34 km/h</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-size: 12px; color: var(--muted);">Signal Stability</span>
+                    <span style="font-size: 12px; font-weight: 700; color: var(--success);">98%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 12px; color: var(--muted);">Total Occupancy</span>
+                    <span style="font-size: 12px; font-weight: 700; color: var(--glow);">142 / 190</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card" style="flex: 1;">
+            <div class="card-label"><i data-lucide="alert-triangle" style="width: 14px;"></i> AI Diagnostics</div>
+            <div id="aiAlerts">
+                <div style="padding: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; font-size: 11px; color: var(--success);">
+                    <b>RECO:</b> Traffic light timing at Sector 10 optimized for B-01 arrival.
+                </div>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+lucide.createIcons();
+
+// MAP SETUP
+const map = L.map('map', { zoomControl: false }).setView([19.2952, 72.8544], 14);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+
+const schoolPos = [19.2980, 72.8560];
+const busIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+    iconSize: [35, 35],
+    popupAnchor: [0, -15]
+});
+
+const driverNames = ["Ramesh Kumar", "Suresh Singh", "Abdul Khan", "Mahesh Patil", "Vikram Dada"];
+const busStarts = [[19.2830, 72.8544], [19.3100, 72.8450], [19.2900, 72.8720], [19.3080, 72.8750], [19.3150, 72.8580]];
+const buses = [];
+
+// AI Log Generator
+const activityFeed = document.getElementById('activityFeed');
+function addLog(msg) {
+    const time = new Date().toLocaleTimeString([], { hour12: false });
+    const div = document.createElement('div');
+    div.className = 'feed-item';
+    div.innerHTML = `[${time}] <b>AI:</b> ${msg}`;
+    activityFeed.prepend(div);
+    if(activityFeed.children.length > 8) activityFeed.lastChild.remove();
+}
+
+async function getRoute(start, end) {
+    try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+    } catch (e) { return [start, end]; }
+}
+
+function getBusStatus(id) {
+    const today = `${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear()}`;
+    const history = JSON.parse(localStorage.getItem(`history_${id}`)) || [];
+    const record = history.find(r => r.date === today);
+    if (!record || record.status === 'Absent') return "OFFLINE";
+    if (record.status === 'Present') {
+        const startTime = localStorage.getItem(`startup_${id}_${today}`);
+        if (!startTime) return "STANDBY";
+        const elapsed = Math.floor((Date.now() - parseInt(startTime)) / 1000);
+        return elapsed < 30 ? `STARTING` : "MOVING";
+    }
+    return "UNKNOWN";
+}
+
+async function initFleet() {
+    for (let i = 0; i < busStarts.length; i++) {
+        const busId = i + 1;
+        const route = await getRoute(busStarts[i], schoolPos);
+        const marker = L.marker(route[0], { icon: busIcon }).addTo(map);
+        
+        buses.push({ marker, route, index: 0, id: busId, name: driverNames[i] });
+    }
+    updateLoop();
+}
+
+function updateLoop() {
+    setInterval(() => {
+        buses.forEach(bus => {
+            const status = getBusStatus(bus.id);
+            const speed = status === "MOVING" ? Math.floor(Math.random() * 15 + 30) : 0;
+            
+            if (status === "MOVING") {
+                bus.index = (bus.index + 1) % bus.route.length;
+                bus.marker.setLatLng(bus.route[bus.index]);
+                if(Math.random() > 0.95) addLog(`Unit B-0${bus.id} speed threshold optimized.`);
+            }
+
+            const popup = `
+                <div class='tele-box'>
+                    <h4>Unit #B-0${bus.id}</h4>
+                    <p><b>Pilot:</b> ${bus.name}</p>
+                    <p><b>Telemetry:</b> <span class="${status === 'MOVING' ? 'moving' : 'starting'} status-pill">${status}</span></p>
+                    <p><b>Velocity:</b> ${speed} km/h</p>
+                    <p><b>ETA:</b> 4.2 mins</p>
+                    <div style="height:2px; background:var(--primary); margin-top:10px; width: 60%;"></div>
+                </div>`;
+            bus.marker.bindPopup(popup);
+        });
+    }, 1000);
+}
+
+// Initial Events
+setTimeout(() => addLog("Neural Satellite Link Established."), 1000);
+setTimeout(() => addLog("Mira Road Sector telemetry synchronized."), 2500);
+
+initFleet();
+
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "login.html";
+}
+// Har page ke end mein ye script add karein
+document.addEventListener("DOMContentLoaded", () => {
+    const currentPage = window.location.pathname.split("/").pop() || "index.html";
+    
+    const navMapping = {
+        "index.html": "nav-dashboard",
+        "fleet.html": "nav-fleet",
+        "bus-health.html": "nav-health",
+        "routes.html": "nav-routes",
+        "students.html": "nav-students",
+        "driver-admin.html": "nav-driver",
+        "manage-assignment.html": "nav-duty",
+        "settings.html": "nav-settings"
+    };
+
+    // Puraane active class hatayein aur naye page par lagayein
+    Object.values(navMapping).forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove("active");
+    });
+
+    if (navMapping[currentPage]) {
+        const activeEl = document.getElementById(navMapping[currentPage]);
+        if(activeEl) activeEl.classList.add("active");
+    }
+    
+    lucide.createIcons(); // Icons load karne ke liye
+});
+</script>
+</body>
+</html>

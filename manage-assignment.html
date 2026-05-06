@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuardianRoute World | AI Workforce Command</title>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --sidebar-glass: rgba(15, 23, 42, 0.75);
+            --card-glass: rgba(30, 41, 59, 0.4);
+            --primary: #6366f1;
+            --accent: #06b6d4;
+            --glow: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --neon-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* NEURAL BACKGROUND */
+        .cyber-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
+        }
+        .cyber-bg::after {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+
+        /* SIDEBAR */
+        .sidebar { 
+            width: 280px; background: var(--sidebar-glass); backdrop-filter: blur(20px); 
+            padding: 40px 24px; border-right: 1px solid var(--border); 
+            position: fixed; height: 95vh; margin: 2.5vh 0 2.5vh 20px;
+            border-radius: 24px; display: flex; flex-direction: column; z-index: 1000;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+        .logo-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 50px; text-decoration: none; }
+        .school-logo { width: 60px; filter: drop-shadow(0 0 10px var(--primary)); animation: float 4s ease-in-out infinite; }
+        .logo-text { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #fbbf24; }
+
+        .nav-item { padding: 14px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; transition: 0.3s; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 15px; text-decoration: none; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-item.active { background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+
+        /* MAIN CONTENT */
+        .main { margin-left: 320px; flex: 1; padding: 40px; display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+
+        .header-section { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .command-title h1 { font-weight: 800; font-size: 32px; letter-spacing: -1.5px; }
+
+        /* ANALYTICS WIDGETS */
+        .analytics-row { grid-column: span 2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 10px; }
+        .mini-widget { background: var(--card-glass); padding: 20px; border-radius: 20px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .mini-widget span { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; }
+        .mini-widget h3 { font-size: 22px; font-weight: 800; color: #fff; }
+
+        /* ASSIGNMENT GRID */
+        .assignment-container { background: var(--card-glass); backdrop-filter: blur(15px); border-radius: 28px; border: 1px solid var(--border); padding: 30px; position: relative; }
+        .driver-strip { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 20px; background: rgba(255,255,255,0.02); margin-bottom: 12px; 
+            border-radius: 18px; border: 1px solid transparent; transition: 0.3s;
+        }
+        .driver-strip:hover { background: rgba(255,255,255,0.05); border-color: var(--primary); transform: translateX(5px); }
+
+        .bus-badge { background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 12px; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-absent { background: rgba(239, 68, 68, 0.15); color: var(--danger); padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; border: 1px solid var(--danger); animation: pulse 2s infinite; }
+
+        /* COMMAND SELECTOR */
+        select { 
+            background: #0f172a; color: white; padding: 10px 15px; border-radius: 12px; 
+            border: 1px solid var(--border); font-size: 12px; font-weight: 600; outline: none; cursor: pointer;
+            transition: 0.3s;
+        }
+        select:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
+
+        .save-btn { 
+            width: 100%; margin-top: 25px; padding: 18px; background: var(--primary); 
+            color: white; border: none; border-radius: 20px; font-weight: 800; 
+            cursor: pointer; transition: 0.4s; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+        }
+        .save-btn:hover { background: #4f46e5; transform: translateY(-3px); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4); }
+
+        /* RIGHT PANEL: STANDBY POOL */
+        .ai-panel { display: flex; flex-direction: column; gap: 20px; }
+        .glass-card { background: var(--card-glass); border-radius: 24px; border: 1px solid var(--border); padding: 25px; }
+        .pool-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px; background: rgba(255,255,255,0.03); border-radius: 15px; 
+            margin-bottom: 10px; border: 1px solid var(--border);
+        }
+        .status-avail { color: var(--success); font-weight: 800; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+        .status-busy { color: var(--accent); font-weight: 800; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+
+        /* LIVE FEED */
+        .log-container { flex: 1; overflow-y: auto; font-size: 11px; color: var(--muted); height: 250px; }
+        .log-item { padding: 10px; border-left: 2px solid var(--primary); background: rgba(255,255,255,0.02); margin-bottom: 8px; border-radius: 0 8px 8px 0; animation: slideIn 0.3s ease-out; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .sidebar { 
+    width: 280px; 
+    background: rgba(15, 23, 42, 0.75); 
+    backdrop-filter: blur(20px); 
+    padding: 30px 20px; 
+    border-right: 1px solid rgba(255, 255, 255, 0.08); 
+    position: fixed; 
+    height: 96vh; 
+    margin: 2vh 0 2vh 20px;
+    border-radius: 28px;
+    display: flex; 
+    flex-direction: column; 
+    z-index: 1000;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+.logo-container { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 12px; 
+    margin-bottom: 40px; 
+    text-decoration: none; 
+}
+
+.school-logo { 
+    width: 80px; 
+    height: auto; 
+    filter: drop-shadow(0 0 15px #6366f1); 
+    animation: float 4s ease-in-out infinite;
+}
+
+.logo-text { 
+    font-size: 14px; 
+    font-weight: 800; 
+    letter-spacing: 2px; 
+    color: #fbbf24;
+}
+
+.nav-item { 
+    padding: 12px 18px; 
+    margin-bottom: 5px; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    transition: 0.3s; 
+    font-weight: 500; 
+    color: #94a3b8; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    text-decoration: none; 
+}
+
+.nav-item i { width: 18px; height: 18px; }
+
+.nav-item:hover { 
+    background: rgba(255,255,255,0.05); 
+    color: #fff; 
+    transform: translateX(5px);
+}
+
+.nav-item.active { 
+    background: rgba(99, 102, 241, 0.15); 
+    color: #6366f1; 
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+@keyframes float { 
+    0%, 100% { transform: translateY(0); } 
+    50% { transform: translateY(-10px); } 
+}
+    </style>
+</head>
+<body>
+
+<div class="cyber-bg"></div>
+
+<div class="sidebar">
+    <a href="index.html" class="logo-container">
+        <img src="school-logo.png" alt="Swarajya Gurukul" class="school-logo">
+        <span class="logo-text">GUARDIAN ROUTE</span>
+    </a>
+    
+    <nav class="nav-group">
+        <a href="index.html" class="nav-item" id="nav-dashboard">
+            <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
+        </a>
+        <a href="fleet.html" class="nav-item" id="nav-fleet">
+            <i data-lucide="map"></i> <span>Geospatial Live</span>
+        </a>
+        <a href="bus-health.html" class="nav-item" id="nav-health">
+            <i data-lucide="activity"></i> <span>System Health</span>
+        </a>
+        <a href="routes.html" class="nav-item" id="nav-routes">
+            <i data-lucide="route"></i> <span>Navigation</span>
+        </a>
+        <a href="students.html" class="nav-item" id="nav-students">
+            <i data-lucide="users"></i> <span>Students</span>
+        </a>
+        <a href="driver-admin.html" class="nav-item" id="nav-driver">
+            <i data-lucide="shield-check"></i> <span>Staff Logic</span>
+        </a>
+        <a href="manage-assignment.html" class="nav-item" id="nav-duty">
+            <i data-lucide="user-cog"></i> <span>Assignments</span>
+        </a>
+        <a href="settings.html" class="nav-item" id="nav-settings">
+            <i data-lucide="sliders"></i> <span>Configuration</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer" style="margin-top:auto;">
+        <div class="nav-item" onclick="logout()" style="color:var(--danger); background: rgba(239, 68, 68, 0.05); border-radius: 12px;">
+            <i data-lucide="log-out"></i> <span>Secure Exit</span>
+        </div>
+    </div>
+</div>
+
+<main class="main">
+    <div class="header-section">
+        <div class="command-title">
+            <h1>Workforce Allocation</h1>
+            <p style="color: var(--muted); font-size: 13px;">AI Neural Duty Engine • Dynamic Backup Deployment</p>
+        </div>
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 8px 16px; border-radius: 50px; font-size: 10px; font-weight: 800; color: var(--success); letter-spacing: 1px;">
+            WORKFORCE SYNC: OPTIMAL
+        </div>
+    </div>
+
+    <div class="analytics-row">
+        <div class="mini-widget"><div><span>Fleet Readiness</span><h3 id="readiness-val">100%</h3></div><i data-lucide="zap" style="color:var(--accent)"></i></div>
+        <div class="mini-widget"><div><span>Standby Pool</span><h3>02 Units</h3></div><i data-lucide="users" style="color:var(--primary)"></i></div>
+        <div class="mini-widget"><div><span>Duty Reassigned</span><h3 id="reassigned-count">0</h3></div><i data-lucide="refresh-cw" style="color:var(--glow)"></i></div>
+        <div class="mini-widget"><div><span>Neural Sync</span><h3>99.9%</h3></div><i data-lucide="cpu" style="color:var(--success)"></i></div>
+    </div>
+
+    <div class="assignment-container">
+        <h3 style="margin-bottom: 25px; font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--primary);">Real-time Unit Assignments</h3>
+        <div id="busList"></div>
+        <button class="save-btn" onclick="saveAssignments()">Initiate Neural Deployment</button>
+    </div>
+
+    <aside class="ai-panel">
+        <div class="glass-card">
+            <h3 style="margin-bottom: 20px; font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase;">Standby Personnel Pool</h3>
+            <div class="pool-item">
+                <span><strong>Rajesh Khanna</strong> <br><small style="color: var(--muted);">Backup Specialist Alpha</small></span>
+                <span class="status-avail" id="status-Rajesh">● Ready</span>
+            </div>
+            <div class="pool-item">
+                <span><strong>Sanjay Dutt</strong> <br><small style="color: var(--muted);">Backup Specialist Beta</small></span>
+                <span class="status-avail" id="status-Sanjay">● Ready</span>
+            </div>
+        </div>
+
+        <div class="glass-card" style="flex: 1;">
+            <div style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 15px;">AI Allocation Feed</div>
+            <div class="log-container" id="aiLogs"></div>
+        </div>
+    </aside>
+</main>
+
+<script>
+    lucide.createIcons();
+
+    const mainDrivers = [
+        { id: 1, name: "Ramesh Kumar", bus: "B-01" },
+        { id: 2, name: "Suresh Singh", bus: "B-02" },
+        { id: 3, name: "Abdul Khan", bus: "B-03" },
+        { id: 4, name: "Mahesh Patil", bus: "B-04" },
+        { id: 5, name: "Vikram Dada", bus: "B-05" }
+    ];
+
+    let currentAssignments = JSON.parse(localStorage.getItem("active_assignments")) || {};
+    const logContainer = document.getElementById('aiLogs');
+
+    function addLog(msg) {
+        const time = new Date().toLocaleTimeString([], { hour12: false });
+        const div = document.createElement('div');
+        div.className = 'log-item';
+        div.innerHTML = `[${time}] <b>AI:</b> ${msg}`;
+        logContainer.prepend(div);
+        if(logContainer.children.length > 12) logContainer.lastChild.remove();
+    }
+
+    function init() {
+        const listContainer = document.getElementById('busList');
+        const now = new Date();
+        const todayStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+        let reassignedCount = 0;
+        let absentCount = 0;
+
+        listContainer.innerHTML = ""; 
+
+        mainDrivers.forEach(driver => {
+            const history = JSON.parse(localStorage.getItem("history_" + driver.id)) || [];
+            const attendance = history.find(record => record.date === todayStr);
+            const isAbsent = attendance && attendance.status === 'Absent';
+            const assignedName = currentAssignments[driver.bus] || driver.name;
+
+            if (isAbsent) absentCount++;
+            if (assignedName !== driver.name) reassignedCount++;
+
+            // Update Standby Pool Status UI
+            if(assignedName === "Rajesh Khanna") {
+                document.getElementById('status-Rajesh').innerHTML = "● Assigned " + driver.bus;
+                document.getElementById('status-Rajesh').className = "status-busy";
+            }
+            if(assignedName === "Sanjay Dutt") {
+                document.getElementById('status-Sanjay').innerHTML = "● Assigned " + driver.bus;
+                document.getElementById('status-Sanjay').className = "status-busy";
+            }
+
+            const row = document.createElement('div');
+            row.className = 'driver-strip';
+            row.innerHTML = `
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <span class="bus-badge">${driver.bus}</span>
+                    <div>
+                        <div style="font-weight: 700; font-size:14px;">${assignedName}</div>
+                        <div style="font-size:10px; color:var(--muted)">${assignedName === driver.name ? 'Primary Pilot' : 'Neural Backup'}</div>
+                    </div>
+                    ${isAbsent ? '<span class="badge-absent">ABSENT</span>' : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div style="text-align:right; margin-right:10px;">
+                        <div style="font-size:9px; color:var(--success); font-weight:800;">SIG: 14ms</div>
+                        <div style="font-size:9px; color:var(--muted); font-weight:800;">SYNC: OK</div>
+                    </div>
+                    <select onchange="handleSelection('${driver.bus}', this.value)">
+                        <option value="${driver.name}">Default Profile</option>
+                        <option value="Rajesh Khanna" ${assignedName === 'Rajesh Khanna' ? 'selected' : ''}>Rajesh (Spec-A)</option>
+                        <option value="Sanjay Dutt" ${assignedName === 'Sanjay Dutt' ? 'selected' : ''}>Sanjay (Spec-B)</option>
+                    </select>
+                </div>
+            `;
+            listContainer.appendChild(row);
+        });
+
+        // Update Analytics
+        document.getElementById('reassigned-count').innerText = reassignedCount;
+        const readiness = absentCount > 0 && reassignedCount < absentCount ? "85%" : "100%";
+        document.getElementById('readiness-val').innerText = readiness;
+        if(readiness !== "100%") document.getElementById('readiness-val').style.color = "var(--warning)";
+
+        if(absentCount > 0) addLog(`${absentCount} driver absences verified by neural scan.`);
+    }
+
+    function handleSelection(bus, newName) {
+        currentAssignments[bus] = newName;
+        addLog(`Selection cached for Unit ${bus}: ${newName}`);
+    }
+
+    function saveAssignments() {
+        localStorage.setItem("active_assignments", JSON.stringify(currentAssignments));
+        addLog("Neural deployment initialized...");
+        setTimeout(() => {
+            alert("SYSTEM NOTIFICATION: Neural Workforce Sync Complete. Fleet Readiness Optimized.");
+            location.reload();
+        }, 1000);
+    }
+
+    function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+    }
+
+    window.onload = () => { 
+        init(); 
+        lucide.createIcons();
+        addLog("Workforce Telemetry Link Established.");
+    };
+    // Har page ke end mein ye script add karein
+document.addEventListener("DOMContentLoaded", () => {
+    const currentPage = window.location.pathname.split("/").pop() || "index.html";
+    
+    const navMapping = {
+        "index.html": "nav-dashboard",
+        "fleet.html": "nav-fleet",
+        "bus-health.html": "nav-health",
+        "routes.html": "nav-routes",
+        "students.html": "nav-students",
+        "driver-admin.html": "nav-driver",
+        "manage-assignment.html": "nav-duty",
+        "settings.html": "nav-settings"
+    };
+
+    // Puraane active class hatayein aur naye page par lagayein
+    Object.values(navMapping).forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove("active");
+    });
+
+    if (navMapping[currentPage]) {
+        const activeEl = document.getElementById(navMapping[currentPage]);
+        if(activeEl) activeEl.classList.add("active");
+    }
+    
+    lucide.createIcons(); // Icons load karne ke liye
+});
+</script>
+</body>
+</html>

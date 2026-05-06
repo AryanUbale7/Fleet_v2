@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Access Portal | GuardianRoute World</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --card-glass: rgba(15, 23, 42, 0.75);
+            --primary: #6366f1;
+            --accent: #06b6d4;
+            --glow: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --neon-glow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Sora', sans-serif; }
+        
+        body { 
+            background-color: var(--bg-deep); 
+            color: var(--text); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            overflow: hidden;
+        }
+
+        /* --- FUTURISTIC BACKGROUND --- */
+        .cyber-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #020617 100%);
+        }
+        .cyber-bg::after {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+        .scanline {
+            width: 100%; height: 100px; z-index: 1; position: absolute;
+            background: linear-gradient(to bottom, transparent, rgba(99, 102, 241, 0.05), transparent);
+            animation: scan 8s linear infinite;
+        }
+
+        /* --- LOGIN CARD --- */
+        .login-card {
+            background: var(--card-glass);
+            backdrop-filter: blur(25px);
+            width: 100%;
+            max-width: 480px;
+            padding: 50px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            animation: cardFloat 6s ease-in-out infinite;
+            z-index: 10;
+        }
+
+        .logo-box img { 
+            width: 90px; height: 90px; margin-bottom: 20px; 
+            filter: drop-shadow(0 0 15px var(--primary));
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        .school-name { 
+            font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #fff;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .sub-text { color: var(--muted); font-size: 12px; letter-spacing: 1px; margin-bottom: 40px; text-transform: uppercase; font-weight: 600; }
+
+        /* --- INPUT FIELDS --- */
+        .input-group { text-align: left; margin-bottom: 24px; position: relative; }
+        .input-group label { display: block; font-size: 10px; font-weight: 800; color: var(--primary); margin-bottom: 8px; letter-spacing: 1.5px; text-transform: uppercase; }
+        
+        .input-wrapper { position: relative; }
+        .input-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 18px; transition: 0.3s; }
+        
+        input, select {
+            width: 100%; padding: 16px 16px 16px 48px; border-radius: 16px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.03); 
+            color: #fff; font-size: 14px; font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); outline: none; appearance: none;
+        }
+
+        input:focus, select:focus { 
+            border-color: var(--primary); 
+            background: rgba(99, 102, 241, 0.05); 
+            box-shadow: var(--neon-glow);
+        }
+        input:focus + i, select:focus + i { color: var(--primary); }
+
+        /* --- LOGIN BUTTON --- */
+        .login-btn {
+            width: 100%; padding: 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+            background: var(--primary); color: white; font-size: 14px; font-weight: 800;
+            cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 12px;
+            text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .login-btn:hover { 
+            transform: translateY(-5px) scale(1.02); 
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.5);
+            background: #4f46e5;
+        }
+
+        /* --- TELEMETRY WIDGETS --- */
+        .telemetry-row {
+            position: absolute; bottom: 40px; display: flex; gap: 30px;
+        }
+        .tele-item { display: flex; align-items: center; gap: 10px; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .dot-green { background: var(--success); box-shadow: 0 0 10px var(--success); animation: blink 2s infinite; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes scan { from { top: -10%; } to { top: 110%; } }
+        @keyframes cardFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes logoPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--primary)); } 50% { transform: scale(1.05); filter: drop-shadow(0 0 25px var(--primary)); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Authentication Overlay */
+        #auth-overlay {
+            position: fixed; inset: 0; background: var(--bg-deep); z-index: 1000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        .loader-circle {
+            width: 100px; height: 100px; border: 4px solid var(--border);
+            border-top: 4px solid var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .login-card { padding: 30px; margin: 20px; }
+            .telemetry-row { display: none; }
+        }
+        /* Dropdown Select Styling */
+select {
+    width: 100%;
+    padding: 16px 16px 16px 48px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05); /* Semi-transparent background */
+    color: #fff; /* White text */
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    appearance: none; /* Default arrow hatane ke liye */
+    cursor: pointer;
+}
+
+/* Jab dropdown khulega toh options kaise dikhenge */
+select option {
+    background-color: #0f172a; /* Dark background for options list */
+    color: #fff; /* White text for options */
+    padding: 10px;
+}
+
+/* Hover aur Focus effect */
+input:focus, select:focus { 
+    border-color: var(--primary); 
+    background: rgba(99, 102, 241, 0.1); 
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}
+
+/* Optional: Custom arrow add karne ke liye (kyunki appearance: none se arrow hat jata hai) */
+.input-wrapper::after {
+    content: "▼";
+    font-size: 10px;
+    color: var(--muted);
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+    </style>
+</head>
+<body>
+
+<div class="cyber-bg"></div>
+<div class="scanline"></div>
+
+<div id="auth-overlay">
+    <div class="loader-circle"></div>
+    <p id="auth-status" style="letter-spacing: 3px; font-weight: 800; color: var(--primary);">VERIFYING IDENTITY...</p>
+</div>
+
+<div class="login-card">
+    <div class="logo-box">
+        <img src="school-logo.png" alt="Logo">
+    </div>
+    <h1 class="school-name">GUARDIAN ROUTE</h1>
+    <p class="sub-text">AI FLEET INTELLIGENCE SYSTEM</p>
+
+    <form onsubmit="handleLogin(event)">
+        <div class="input-group">
+            <label>Access Node</label>
+            <div class="input-wrapper">
+                <i data-lucide="shield-check"></i>
+                <select id="role" required>
+                    <option value="" disabled selected>Select Access Role</option>
+                    <option value="admin">SYSTEM ADMINISTRATOR</option>
+                    <option value="driver">PILOT / DRIVER UNIT</option>
+                    <option value="cleaner">FLEET ATTENDANT</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Identity UID</label>
+            <div class="input-wrapper">
+                <i data-lucide="fingerprint"></i>
+                <input type="text" id="username" placeholder="Enter ID Protocol" required>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Security Key</label>
+            <div class="input-wrapper">
+                <i data-lucide="key-round"></i>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+        </div>
+
+        <button type="submit" class="login-btn" id="submit-btn">
+            INITIALIZE AUTH <i data-lucide="zap"></i>
+        </button>
+    </form>
+</div>
+
+<div class="telemetry-row">
+    <div class="tele-item"><div class="dot dot-green"></div> AI CORE ONLINE</div>
+    <div class="tele-item"><div class="dot dot-green"></div> SATELLITE SYNC ACTIVE</div>
+    <div class="tele-item"><div class="dot dot-green"></div> ENCRYPTION LAYER v4.2</div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    function handleLogin(e) {
+        e.preventDefault();
+        const role = document.getElementById('role').value;
+        const inputID = document.getElementById('username').value;
+        
+        // Show Futuristic Loader
+        const overlay = document.getElementById('auth-overlay');
+        const statusTxt = document.getElementById('auth-status');
+        overlay.style.display = 'flex';
+
+        setTimeout(() => {
+            statusTxt.innerText = "AUTHENTICATION GRANTED";
+            statusTxt.style.color = "var(--success)";
+            
+            setTimeout(() => {
+                executeLoginLogic(role, inputID);
+            }, 1000);
+        }, 1500);
+    }
+
+    function executeLoginLogic(role, inputID) {
+        if(role === 'admin') {
+            localStorage.setItem("token", "admin-logged-in");
+            window.location.href = "index.html"; 
+        } 
+        else if(role === 'driver') {
+            const driversList = [
+                { id: 1, name: "Ramesh Kumar", bus: "B-01", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ramesh" },
+                { id: 2, name: "Suresh Singh", bus: "B-02", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Suresh" },
+                { id: 3, name: "Abdul Khan", bus: "B-03", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Abdul" },
+                { id: 4, name: "Mahesh Patil", bus: "B-04", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mahesh" },
+                { id: 5, name: "Vikram Dada", bus: "B-05", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram" }
+            ];
+
+            const standbyList = [
+                { id: 101, name: "Rajesh Khanna", role: "Backup Specialist 1", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh" },
+                { id: 102, name: "Sanjay Dutt", role: "Backup Specialist 2", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sanjay" }
+            ];
+
+            const foundDriver = driversList.find(d => d.id == inputID);
+            const foundStandby = standbyList.find(d => d.id == inputID);
+
+            if (foundDriver) {
+                localStorage.setItem("currentDriver", JSON.stringify(foundDriver));
+                window.location.href = "driver-dashboard.html";
+            } 
+            else if (foundStandby) {
+                localStorage.setItem("currentDriver", JSON.stringify(foundStandby));
+                window.location.href = "standby-dashboard.html";
+            }
+            else {
+                document.getElementById('auth-overlay').style.display = 'none';
+                alert("ACCESS DENIED: Invalid Identity Node");
+            }
+        } 
+        else if(role === 'cleaner') {
+            const mockCleaner = { id: inputID, name: "Helper " + inputID, bus: "B-0" + inputID };
+            localStorage.setItem("currentCleaner", JSON.stringify(mockCleaner));
+            window.location.href = "cleaner-dashboard.html";
+        }
+    }
+</script>
+</body>
+</html>
