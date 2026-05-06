@@ -189,6 +189,81 @@
     0%, 100% { transform: translateY(0); } 
     50% { transform: translateY(-10px); } 
 }
+/* --- RESPONSIVENESS SYSTEM --- */
+
+@media (max-width: 1100px) {
+    .main {
+        margin-left: 100px; /* Sidebar chhota hone par margin kam */
+        padding: 30px;
+    }
+    .sidebar {
+        width: 85px;
+        padding: 20px 10px;
+    }
+    .logo-text, .nav-item span, .sidebar-footer span {
+        display: none; /* Text hide karke sirf icons dikhayenge */
+    }
+    .nav-item {
+        justify-content: center;
+    }
+    .cards-grid, .tele-grid, .stats-grid {
+        grid-template-columns: repeat(2, 1fr); /* 4 columns se 2 columns */
+    }
+    .charts-grid, .tele-row {
+        grid-template-columns: 1fr; /* Charts ek ke niche ek */
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column; /* Sidebar top par ya bottom par move karne ke liye */
+    }
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        margin: 0;
+        border-radius: 0;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    .logo-container {
+        display: none; /* Mobile par logo hide */
+    }
+    .nav-group {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+    }
+    .main {
+        margin-left: 0;
+        padding: 15px;
+        width: 100%;
+    }
+    .command-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .cards-grid, .tele-grid, .stats-grid {
+        grid-template-columns: 1fr; /* Mobile par sab kuch single column */
+    }
+    .t-header, .table-header-row {
+        display: none; /* Mobile par table header ajeeb lagta hai */
+    }
+    .t-row, .table-row {
+        grid-template-columns: 1fr 1fr; /* Mobile par data 2 parts mein */
+        gap: 10px;
+        height: auto;
+        padding: 15px;
+    }
+    .modal-content {
+        width: 95%; /* Modals mobile screen ke hisab se */
+        padding: 20px;
+    }
+}
     </style>
 </head>
 <body>
